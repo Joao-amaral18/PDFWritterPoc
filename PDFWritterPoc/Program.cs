@@ -1,64 +1,54 @@
-﻿using iText.Kernel.Geom;
+﻿using System;
+using System.IO;
+using iText.Kernel.Geom;
 using iText.Kernel.Pdf;
-using iText.Layout;
-using iText.Html2pdf;
+using iText.Kernel.Pdf.Canvas;
 
-//PdfDocument pdfDocument = new PdfDocument(new PdfWriter(
-//new FileStream("/Users/CODE-DEV-43/Documents/documentFinal.pdf", FileMode.Create, FileAccess.Write)));
-//Document documentFinal = new Document(pdfDocument, PageSize.A1);
-
-namespace PdfWritterDoc;
-class Program
+namespace iText.Samples.Sandbox.Stamper
 {
-
-    public static void Main(string[] args)
+    public class ShrinkPdf
     {
-        string htmlFilePath = "/Users/CODE-DEV-43/Documents/html(1).html";
-        Stream htmlStream = new FileStream(htmlFilePath, FileMode.Open);
+        public static readonly String DEST = "out.pdf";
+        public static readonly String SRC = "output.pdf";
 
-        //path to the final PDF
-        PdfDocument finalOutFile = new PdfDocument(new PdfWriter("OutputFilePath.pdf"));
-        Document finalDocument = new Document(finalOutFile, PageSize.A0);
-
-        //creating in the memory
-        PdfDocument[] sourcePdfs = new PdfDocument[6];
-
-        //path to the generated test pdf
-        PdfDocument pdfDocument = new PdfDocument(new PdfWriter("output.pdf"));
-
-
-        if (htmlStream.Length > 0)
-            ConvertHtmlToPdf(htmlStream, pdfDocument);
-        pdfDocument.Close();
-
-
-        var outputPdf = File.ReadAllBytes("output.pdf");
-        int fileTotalPages = PageCount(outputPdf);
-
-        if (fileTotalPages > 1)
+        public static void Main(String[] args)
         {
-            for (int i = 0; i < fileTotalPages; i++)
-            {
-                sourcePdfs[i] = new PdfDocument(new PdfReader("output.pdf"));
-            }
+            FileInfo file = new FileInfo(DEST);
+            file.Directory?.Create();
+
+            new ShrinkPdf().ManipulatePdf(DEST);
         }
 
-        static int PageCount(byte[] pdf)
+        protected void ManipulatePdf(String dest)
         {
-            using (var stream = new MemoryStream(pdf))
+            PdfDocument pdfDoc = new PdfDocument(new PdfReader(SRC), new PdfWriter(dest));
+
+            for (int p = 1; p <= pdfDoc.GetNumberOfPages(); p++)
             {
-                using (var reader = new PdfReader(stream))
+                PdfPage page = pdfDoc.GetPage(p);
+                Rectangle media = page.GetCropBox();
+                if (media == null)
                 {
-                    using (var document = new PdfDocument(reader))
-                    {
-                        return document.GetNumberOfPages();
-                    }
+                    media = page.GetMediaBox();
                 }
+
+                // Shrink the page to 50%
+                Rectangle crop = new Rectangle(0, 0, media.GetWidth() / 2, media.GetHeight() / 2);
+                page.SetMediaBox(crop);
+                page.SetCropBox(crop);
+
+                // The content, placed on a content stream before, will be rendered before the other content
+                // and, therefore, could be understood as a background (bottom "layer")
+                new PdfCanvas(page.NewContentStreamBefore(),
+                        page.GetResources(), pdfDoc).WriteLiteral("\nq 0.5 0 0 0.5 0 0 cm\nq\n");
+
+                // The content, placed on a content stream after, will be rendered after the other content
+                // and, therefore, could be understood as a foreground (top "layer")
+                new PdfCanvas(page.NewContentStreamAfter(),
+                        page.GetResources(), pdfDoc).WriteLiteral("\nQ\nQ\n");
             }
-        }
-        static void ConvertHtmlToPdf(Stream htmlFile, PdfDocument pdfDocument)
-        {
-            HtmlConverter.ConvertToPdf(htmlFile, pdfDocument, new ConverterProperties());
+
+            pdfDoc.Close();
         }
     }
 }
