@@ -1,54 +1,83 @@
-﻿using System;
-using System.IO;
-using iText.Kernel.Geom;
+﻿using iText.Kernel.Geom;
 using iText.Kernel.Pdf;
 using iText.Kernel.Pdf.Canvas;
+using iText.Kernel.Pdf.Xobject;
 
-namespace iText.Samples.Sandbox.Stamper
+namespace PdfWritterPoc
 {
-    public class ShrinkPdf
+    public class CopyTo
     {
-        public static readonly String DEST = "out.pdf";
-        public static readonly String SRC = "output.pdf";
+        public static readonly string DEST = "out.pdf";
+        public static readonly int numColumns = 4;
+        public static readonly int numRows = 4;
+        public static float xPosition = 0;
+        public static float yPosition = 0;
+        public static float a4Width;
+        public static float a4Height;
+        private static string srcFile = "output.pdf";
 
-        public static void Main(String[] args)
+        public static void Main(string[] args)
         {
-            FileInfo file = new FileInfo(DEST);
-            file.Directory?.Create();
+            PdfDocument pdfDocument = new PdfDocument(new PdfWriter(DEST));
+            PageSize a0PageSize = PageSize.A0;
+            pdfDocument.AddNewPage(a0PageSize);
+            pdfDocument.Close();
 
-            new ShrinkPdf().ManipulatePdf(DEST);
-        }
 
-        protected void ManipulatePdf(String dest)
-        {
-            PdfDocument pdfDoc = new PdfDocument(new PdfReader(SRC), new PdfWriter(dest));
+            a4Width = PageSize.A4.GetWidth();
+            a4Height = PageSize.A4.GetHeight();
 
-            for (int p = 1; p <= pdfDoc.GetNumberOfPages(); p++)
+
+            float totalWidth = a4Width * numColumns;
+            float totalHeight = a4Height * numRows;
+            float columnWidth = PageSize.A0.GetWidth();
+            float columnHeight = PageSize.A0.GetHeight();
+
+            for (int i = 0; i <= numColumns; i++)
             {
-                PdfPage page = pdfDoc.GetPage(p);
-                Rectangle media = page.GetCropBox();
-                if (media == null)
+                int rowIndex = i % numColumns;
+                yPosition = rowIndex * columnHeight;
+
+                for (int j = 1; j <= (numRows + 1); i++)
                 {
-                    media = page.GetMediaBox();
+                    int columnIndex = j % numColumns;
+                    xPosition = columnIndex * columnWidth;
+                    CopyToFile(j, xPosition, yPosition, a4Width, srcFile, pdfDocument);
                 }
-
-                // Shrink the page to 50%
-                Rectangle crop = new Rectangle(0, 0, media.GetWidth() / 2, media.GetHeight() / 2);
-                page.SetMediaBox(crop);
-                page.SetCropBox(crop);
-
-                // The content, placed on a content stream before, will be rendered before the other content
-                // and, therefore, could be understood as a background (bottom "layer")
-                new PdfCanvas(page.NewContentStreamBefore(),
-                        page.GetResources(), pdfDoc).WriteLiteral("\nq 0.5 0 0 0.5 0 0 cm\nq\n");
-
-                // The content, placed on a content stream after, will be rendered after the other content
-                // and, therefore, could be understood as a foreground (top "layer")
-                new PdfCanvas(page.NewContentStreamAfter(),
-                        page.GetResources(), pdfDoc).WriteLiteral("\nQ\nQ\n");
+                yPosition += a4Height;
             }
 
-            pdfDoc.Close();
+        }
+        // private static void CopyToFile(int index, float xPosition, float yPosition, float a4Width, string srcFile, PdfDocument pdfDocument)
+        // {
+
+        //     PdfDocument pdfReader = new PdfDocument(new PdfReader(srcFile));
+        //     int pages = pdfReader.GetNumberOfPages();
+        //     PdfPage page = pdfReader.GetPage(index);
+        //     PdfCanvas canvas = new PdfCanvas(page);
+
+        //     for (int i = 1; i <= pages || i <= numColumns; i++)
+        //     {
+        //         PdfFormXObject pageXObject = page.CopyAsFormXObject(pdfDocument);
+        //         canvas.AddXObjectAt(pageXObject, xPosition, yPosition);
+        //         xPosition += a4Width;
+        //     }
+        //     pdfReader.Close();
+        // }
+        private static void CopyToFile(int index, float xPosition, float yPosition, float a4Width, PdfDocument pdfReader, PdfDocument pdfDocument)
+        {
+            int pages = pdfReader.GetNumberOfPages();
+            PdfPage page = pdfReader.GetPage(index);
+
+            using (PdfCanvas canvas = new PdfCanvas(pdfDocument.GetPage(1)))
+            {
+                for (int i = 1; i <= pages && i <= numColumns; i++)
+                {
+                    PdfFormXObject pageXObject = page.CopyAsFormXObject(pdfDocument);
+                    canvas.AddXObject(pageXObject, xPosition, yPosition);
+                    xPosition += a4Width;
+                }
+            }
         }
     }
 }
