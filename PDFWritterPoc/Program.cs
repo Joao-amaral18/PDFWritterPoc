@@ -62,18 +62,21 @@ namespace PdfWritterPoc
                 PdfCanvas canvas = new(pdfDocument.GetPage(1));
 
                 //Loop for the pages interation
-                for (int i = 1; i <= pages; i++)
+                if (fileSize <= maxFileSize)
                 {
-                    if (fileSize <= maxFileSize && (totalHeight - yPosition) > a4Height)
+                    for (int i = 1; i <= pages; i++)
                     {
-                        PdfPage page = readerDocument.GetPage(i);
-                        PdfFormXObject pageXObject = page.CopyAsFormXObject(pdfDocument);
-                        canvas.AddXObjectAt(pageXObject, xPosition, yPosition);
-                        xPosition += a4Width;
-                        if ((totalWidth - xPosition) < a4Width)
+                        if ((totalHeight - yPosition) > a4Height)
                         {
-                            yPosition += a4Height;
-                            xPosition = 0;
+                            PdfPage page = readerDocument.GetPage(i);
+                            PdfFormXObject pageXObject = page.CopyAsFormXObject(pdfDocument);
+                            canvas.AddXObjectAt(pageXObject, xPosition, yPosition);
+                            xPosition += a4Width;
+                            if ((totalWidth - xPosition) < a4Width)
+                            {
+                                yPosition += a4Height;
+                                xPosition = 0;
+                            }
                         }
                     }
                 }
