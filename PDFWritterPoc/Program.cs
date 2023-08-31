@@ -7,77 +7,84 @@ namespace PdfWritterPoc
 {
     public class CopyTo
     {
-        public static readonly string DEST = "out.pdf";
+        public static readonly string DEST = "pdfOutput.pdf";
         public static readonly int numColumns = 4;
         public static readonly int numRows = 4;
-        public static float xPosition = 0;
-        public static float yPosition = 0;
+        public static long fileSize = 0;
+        public static float xPosition;
+        public static float yPosition;
         public static float a4Width;
         public static float a4Height;
-        private static string srcFile = "output.pdf";
+        public static long maxFileSize = 8000000;
+        private static string[] srcFiles = { "output.pdf", "output2.pdf", "output3.pdf" };
+        //private static string[] srcFiles = { "output.pdf" };
 
         public static void Main(string[] args)
         {
-            PdfDocument pdfDocument = new PdfDocument(new PdfWriter(DEST));
+            PdfDocument pdfDocument = new(new PdfWriter(DEST));
             PageSize a0PageSize = PageSize.A0;
             pdfDocument.AddNewPage(a0PageSize);
-            pdfDocument.Close();
 
 
             a4Width = PageSize.A4.GetWidth();
             a4Height = PageSize.A4.GetHeight();
+            xPosition = 0;
+            yPosition = 0;
 
 
             float totalWidth = a4Width * numColumns;
             float totalHeight = a4Height * numRows;
-            float columnWidth = PageSize.A0.GetWidth();
-            float columnHeight = PageSize.A0.GetHeight();
+            float columnWidth = PageSize.A0.GetWidth() / numColumns;
+            float columnHeight = PageSize.A0.GetHeight() / numRows;
 
-            for (int i = 0; i <= numColumns; i++)
+
+            int i = 1;
+
+            //interate troghout the pdfs sources
+            foreach (var srcFile in srcFiles)
             {
-                int rowIndex = i % numColumns;
-                yPosition = rowIndex * columnHeight;
-
-                for (int j = 1; j <= (numRows + 1); i++)
-                {
-                    int columnIndex = j % numColumns;
-                    xPosition = columnIndex * columnWidth;
-                    CopyToFile(j, xPosition, yPosition, a4Width, srcFile, pdfDocument);
-                }
-                yPosition += a4Height;
+                (xPosition, yPosition, fileSize) = CopyToFile(i, xPosition, yPosition, a4Width, totalWidth, totalHeight, a4Height, srcFile, pdfDocument, fileSize);
+                i++;
             }
-
+            pdfDocument.Close();
         }
-        // private static void CopyToFile(int index, float xPosition, float yPosition, float a4Width, string srcFile, PdfDocument pdfDocument)
-        // {
-
-        //     PdfDocument pdfReader = new PdfDocument(new PdfReader(srcFile));
-        //     int pages = pdfReader.GetNumberOfPages();
-        //     PdfPage page = pdfReader.GetPage(index);
-        //     PdfCanvas canvas = new PdfCanvas(page);
-
-        //     for (int i = 1; i <= pages || i <= numColumns; i++)
-        //     {
-        //         PdfFormXObject pageXObject = page.CopyAsFormXObject(pdfDocument);
-        //         canvas.AddXObjectAt(pageXObject, xPosition, yPosition);
-        //         xPosition += a4Width;
-        //     }
-        //     pdfReader.Close();
-        // }
-        private static void CopyToFile(int index, float xPosition, float yPosition, float a4Width, PdfDocument pdfReader, PdfDocument pdfDocument)
+        private static (float xPosition, float yPosition, long fileSize) CopyToFile(int index, float xPosition, float yPosition, float a4Width, float totalWidth, float totalHeight, float a4Height, string pdfReader, PdfDocument pdfDocument, long fileSize)
         {
-            int pages = pdfReader.GetNumberOfPages();
-            PdfPage page = pdfReader.GetPage(index);
-
-            using (PdfCanvas canvas = new PdfCanvas(pdfDocument.GetPage(1)))
+            try
             {
-                for (int i = 1; i <= pages && i <= numColumns; i++)
+                PdfReader reader = new(pdfReader);
+                PdfDocument readerDocument = new(reader);
+                int pages = readerDocument.GetNumberOfPages();
+
+                fileSize += reader.GetFileLength();
+
+                //The final file
+                PdfCanvas canvas = new(pdfDocument.GetPage(1));
+
+                //Loop for the pages interation
+                for (int i = 1; i <= pages; i++)
                 {
-                    PdfFormXObject pageXObject = page.CopyAsFormXObject(pdfDocument);
-                    canvas.AddXObject(pageXObject, xPosition, yPosition);
-                    xPosition += a4Width;
+                    if (fileSize <= maxFileSize && (totalHeight - yPosition) > a4Height)
+                    {
+                        PdfPage page = readerDocument.GetPage(i);
+                        PdfFormXObject pageXObject = page.CopyAsFormXObject(pdfDocument);
+                        canvas.AddXObjectAt(pageXObject, xPosition, yPosition);
+                        xPosition += a4Width;
+                        if ((totalWidth - xPosition) < a4Width)
+                        {
+                            yPosition += a4Height;
+                            xPosition = 0;
+                        }
+                    }
                 }
+                return (xPosition, yPosition, fileSize);
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine(e);
+                return (xPosition, yPosition, 0);
             }
         }
+
     }
 }
