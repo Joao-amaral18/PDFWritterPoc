@@ -16,21 +16,26 @@ namespace PdfWritterPoc
         public static float a4Width;
         public static float a4Height;
         public static long maxFileSize = 8000000; //8Mb limit
-        private static string[] srcFiles = { "output.pdf", "output2.pdf", "output3.pdf" };
+        //private static string[] srcFiles = { "output.pdf", "output2.pdf", "output3.pdf" };
+        private static string[] srcFiles = new string[7];
         public static void Main(string[] args)
         {
-            PdfDocument pdfDocument = new(new PdfWriter(DEST));
-            PageSize a0PageSize = PageSize.A0;
-            pdfDocument.AddNewPage(a0PageSize);
+            iText.Kernel.Pdf.PdfDocument pdfDocument = new(new PdfWriter(DEST));
+            PageSize pdfPageFile = new PageSize(2380, 1700);
+            pdfDocument.AddNewPage(pdfPageFile);
 
+            for (var a = 0; a < 7; a++)
+            {
+                srcFiles[a] = $"output{a + 1}.pdf";
+            }
 
             a4Width = PageSize.A4.GetWidth();
             a4Height = PageSize.A4.GetHeight();
             xPosition = 0;
             yPosition = 0;
 
-            float totalWidth = a4Width * numColumns;
-            float totalHeight = a4Height * numRows;
+            float totalWidth = pdfPageFile.GetWidth();
+            float totalHeight = pdfPageFile.GetHeight();
 
             int i = 1;
 
@@ -42,13 +47,27 @@ namespace PdfWritterPoc
             }
             pdfDocument.Close();
         }
-        private static (float xPosition, float yPosition, long fileSize) CopyToFile(int index, float xPosition, float yPosition, float a4Width, float totalWidth, float totalHeight, float a4Height, string pdfReader, PdfDocument pdfDocument, long fileSize)
+        private static (
+            float xPosition,
+            float yPosition,
+            long fileSize)
+        CopyToFile(
+            int index,
+            float xPosition,
+            float yPosition,
+            float a4Width,
+            float totalWidth,
+            float totalHeight,
+            float a4Height,
+            string pdfReader,
+            PdfDocument pdfDocument,
+            long fileSize)
         {
             try
             {
                 PdfReader reader = new(pdfReader);
                 PdfDocument readerDocument = new(reader);
-                int pages = readerDocument.GetNumberOfPages();
+                int numberOfPages = readerDocument.GetNumberOfPages();
 
                 fileSize += reader.GetFileLength();
 
@@ -58,11 +77,12 @@ namespace PdfWritterPoc
                 //Loop for the pages interation
                 if (fileSize <= maxFileSize)
                 {
-                    for (int i = 1; i <= pages; i++)
+                    for (int i = 1; i <= numberOfPages; i++)
                     {
                         if ((totalHeight - yPosition) > a4Height)
                         {
                             PdfPage page = readerDocument.GetPage(i);
+
                             PdfFormXObject pageXObject = page.CopyAsFormXObject(pdfDocument);
                             canvas.AddXObjectAt(pageXObject, xPosition, yPosition);
                             xPosition += a4Width;
@@ -83,6 +103,5 @@ namespace PdfWritterPoc
                 return (xPosition, yPosition, 0);
             }
         }
-
     }
 }
