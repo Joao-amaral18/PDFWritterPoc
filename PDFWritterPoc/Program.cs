@@ -15,10 +15,8 @@ namespace PdfWritterPoc
         public static float yPosition;
         public static float a4Width;
         public static float a4Height;
-        public static long maxFileSize = 8000000;
+        public static long maxFileSize = 8000000; //8Mb limit
         private static string[] srcFiles = { "output.pdf", "output2.pdf", "output3.pdf" };
-        //private static string[] srcFiles = { "output.pdf" };
-
         public static void Main(string[] args)
         {
             PdfDocument pdfDocument = new(new PdfWriter(DEST));
@@ -31,12 +29,8 @@ namespace PdfWritterPoc
             xPosition = 0;
             yPosition = 0;
 
-
             float totalWidth = a4Width * numColumns;
             float totalHeight = a4Height * numRows;
-            float columnWidth = PageSize.A0.GetWidth() / numColumns;
-            float columnHeight = PageSize.A0.GetHeight() / numRows;
-
 
             int i = 1;
 
@@ -74,6 +68,7 @@ namespace PdfWritterPoc
                             xPosition += a4Width;
                             if ((totalWidth - xPosition) < a4Width)
                             {
+                                //it jumps to the line above and restarts the at the x 0 position
                                 yPosition += a4Height;
                                 xPosition = 0;
                             }
