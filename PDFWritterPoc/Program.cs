@@ -17,6 +17,7 @@ namespace PdfWritterPoc
         public static float a4Height;
         public static long maxFileSize = 8000000; //8Mb limit
         //private static string[] srcFiles = { "output.pdf", "output2.pdf", "output3.pdf" };
+        // private static string[] srcFiles = { "output3.pdf" };
         private static string[] srcFiles = new string[7];
         public static void Main(string[] args)
         {
@@ -31,18 +32,21 @@ namespace PdfWritterPoc
 
             a4Width = PageSize.A4.GetWidth();
             a4Height = PageSize.A4.GetHeight();
-            xPosition = 0;
-            yPosition = 0;
 
             float totalWidth = pdfPageFile.GetWidth();
             float totalHeight = pdfPageFile.GetHeight();
+
+            yPosition = totalHeight - a4Height;
+            xPosition = totalWidth;
 
             int i = 1;
 
             //interate troghout the pdfs sources
             foreach (var srcFile in srcFiles)
             {
-                (xPosition, yPosition, fileSize) = CopyToFile(i, xPosition, yPosition, a4Width, totalWidth, totalHeight, a4Height, srcFile, pdfDocument, fileSize);
+                (xPosition, yPosition, fileSize) = CopyToFile(
+                    i, xPosition, yPosition, a4Width, totalWidth, totalHeight, a4Height, srcFile, pdfDocument, fileSize
+                    );
                 i++;
             }
             pdfDocument.Close();
@@ -77,20 +81,20 @@ namespace PdfWritterPoc
                 //Loop for the pages interation
                 if (fileSize <= maxFileSize)
                 {
-                    for (int i = 1; i <= numberOfPages; i++)
+                    for (int i = numberOfPages; i >= 1; i--)
                     {
-                        if ((totalHeight - yPosition) > a4Height)
+                        if ((totalHeight + yPosition) > a4Height)
                         {
                             PdfPage page = readerDocument.GetPage(i);
 
                             PdfFormXObject pageXObject = page.CopyAsFormXObject(pdfDocument);
                             canvas.AddXObjectAt(pageXObject, xPosition, yPosition);
-                            xPosition += a4Width;
-                            if ((totalWidth - xPosition) < a4Width)
+                            xPosition -= a4Width;
+                            if ((totalWidth + xPosition) > a4Width)
                             {
                                 //it jumps to the line above and restarts the at the x 0 position
-                                yPosition += a4Height;
-                                xPosition = 0;
+                                yPosition -= a4Height;
+                                xPosition = totalWidth;
                             }
                         }
                     }
