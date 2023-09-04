@@ -29,8 +29,6 @@ namespace PdfWritterPoc
 
             a4Width = PageSize.A4.GetWidth();
             a4Height = PageSize.A4.GetHeight();
-            xPosition = 0;
-            yPosition = 0;
 
             float totalWidth = pdfPageFile.GetWidth();
             float totalHeight = pdfPageFile.GetHeight();
