@@ -22,9 +22,9 @@ namespace PdfWritterPoc
             PageSize pdfPageFile = new PageSize(2380, 1700);
             pdfDocument.AddNewPage(pdfPageFile);
 
-            for (var a = 0; a < 7; a++)
+            for (var j = 0; j < 7; j++)
             {
-                srcFiles[a] = $"output{a + 1}.pdf";
+                srcFiles[j] = $"output{j + 1}.pdf";
             }
 
             a4Width = PageSize.A4.GetWidth();
@@ -32,7 +32,7 @@ namespace PdfWritterPoc
 
             float totalWidth = pdfPageFile.GetWidth();
             float totalHeight = pdfPageFile.GetHeight();
-            int i = 1;
+
             int numOfCols = (int)(totalWidth / a4Width);
             int numOfRows = (int)(totalHeight / a4Height);
 
@@ -53,10 +53,10 @@ namespace PdfWritterPoc
                     areaEmpty,
                     fileSize
                 );
-                i++;
             }
             pdfDocument.Close();
         }
+
         private static (
             float xPosition,
             float yPosition,
@@ -76,41 +76,47 @@ namespace PdfWritterPoc
         {
             try
             {
-                PdfReader reader = new(pdfReader);
-                PdfDocument readerDocument = new(reader);
-                int numberOfPages = readerDocument.GetNumberOfPages();
-                int _emptySpace = areaEmpty;
-
-                fileSize += reader.GetFileLength();
-                areaEmpty = TryOperate(areaEmpty, numberOfPages);
-
-                if (_emptySpace != areaEmpty)
+                //PdfReader reader = new(pdfReader);
+                using (PdfReader reader = new PdfReader(pdfReader))
                 {
-                    //The final file
-                    PdfCanvas canvas = new(pdfDocument.GetPage(1));
-                    //Loop for the pages interation
-                    if (fileSize <= maxFileSize)
+                    using (PdfDocument readerDocument = new PdfDocument(reader))
                     {
-                        for (int i = 1; i <= numberOfPages; i++)
-                        {
-                            if ((totalHeight - yPosition) > a4Height)
-                            {
-                                PdfPage page = readerDocument.GetPage(i);
+                        //PdfDocument readerDocument = new(reader);
+                        int numberOfPages = readerDocument.GetNumberOfPages();
+                        int _emptySpace = areaEmpty;
 
-                                PdfFormXObject pageXObject = page.CopyAsFormXObject(pdfDocument);
-                                canvas.AddXObjectAt(pageXObject, xPosition, yPosition);
-                                xPosition += a4Width;
-                                if ((totalWidth - xPosition) < a4Width)
+                        fileSize += reader.GetFileLength();
+                        areaEmpty = TryOperate(areaEmpty, numberOfPages);
+
+                        if (_emptySpace != areaEmpty)
+                        {
+                            //The final file
+                            PdfCanvas canvas = new(pdfDocument.GetPage(1));
+                            //Loop for the pages interation
+                            if (fileSize <= maxFileSize)
+                            {
+                                for (int i = 1; i <= numberOfPages; i++)
                                 {
-                                    //it jumps to the line above and restarts the at the x 0 position
-                                    yPosition += a4Height;
-                                    xPosition = 0;
+                                    if ((totalHeight - yPosition) > a4Height)
+                                    {
+                                        PdfPage page = readerDocument.GetPage(i);
+
+                                        PdfFormXObject pageXObject = page.CopyAsFormXObject(pdfDocument);
+                                        canvas.AddXObjectAt(pageXObject, xPosition, yPosition);
+                                        xPosition += a4Width;
+                                        if ((totalWidth - xPosition) < a4Width)
+                                        {
+                                            //it jumps to the line above and restarts the at the x 0 position
+                                            yPosition += a4Height;
+                                            xPosition = 0;
+                                        }
+                                    }
                                 }
                             }
                         }
+                        return (xPosition, yPosition, fileSize, areaEmpty);
                     }
                 }
-                return (xPosition, yPosition, fileSize, areaEmpty);
             }
             catch (Exception)
             {
@@ -123,7 +129,6 @@ namespace PdfWritterPoc
                 return emptySpaces;
             else
                 return emptySpaces - pages;
-
         }
     }
 }
