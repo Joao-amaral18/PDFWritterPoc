@@ -7,21 +7,18 @@ namespace PdfWritterPoc
 {
     public class CopyTo
     {
-        public static readonly string DEST = "pdfOutput.pdf";
-        public static readonly int numColumns = 4;
-        public static readonly int numRows = 4;
+        public static readonly string output = "pdfOutput.pdf";
         public static long fileSize = 0;
         public static float xPosition;
         public static float yPosition;
         public static float a4Width;
         public static float a4Height;
+        public static int areaEmpty; //total empty spaces in the matrix
         public static long maxFileSize = 8000000; //8Mb limit
-        //private static string[] srcFiles = { "output.pdf", "output2.pdf", "output3.pdf" };
-        // private static string[] srcFiles = { "output3.pdf" };
         private static string[] srcFiles = new string[7];
         public static void Main(string[] args)
         {
-            iText.Kernel.Pdf.PdfDocument pdfDocument = new(new PdfWriter(DEST));
+            iText.Kernel.Pdf.PdfDocument pdfDocument = new(new PdfWriter(output));
             PageSize pdfPageFile = new PageSize(2380, 1700);
             pdfDocument.AddNewPage(pdfPageFile);
 
@@ -35,18 +32,27 @@ namespace PdfWritterPoc
 
             float totalWidth = pdfPageFile.GetWidth();
             float totalHeight = pdfPageFile.GetHeight();
-
-            yPosition = totalHeight - a4Height;
-            xPosition = totalWidth;
-
             int i = 1;
+            int numOfCols = (int)(totalWidth / a4Width);
+            int numOfRows = (int)(totalHeight / a4Height);
+
+            areaEmpty = numOfCols * numOfRows;
 
             //interate troghout the pdfs sources
             foreach (var srcFile in srcFiles)
             {
-                (xPosition, yPosition, fileSize) = CopyToFile(
-                    i, xPosition, yPosition, a4Width, totalWidth, totalHeight, a4Height, srcFile, pdfDocument, fileSize
-                    );
+                (xPosition, yPosition, fileSize, areaEmpty) = CopyToFile(
+                    xPosition,
+                    yPosition,
+                    a4Width,
+                    totalWidth,
+                    totalHeight,
+                    a4Height,
+                    srcFile,
+                    pdfDocument,
+                    areaEmpty,
+                    fileSize
+                );
                 i++;
             }
             pdfDocument.Close();
@@ -54,9 +60,9 @@ namespace PdfWritterPoc
         private static (
             float xPosition,
             float yPosition,
-            long fileSize)
+            long fileSize,
+            int areaEmpty)
         CopyToFile(
-            int index,
             float xPosition,
             float yPosition,
             float a4Width,
@@ -65,6 +71,7 @@ namespace PdfWritterPoc
             float a4Height,
             string pdfReader,
             PdfDocument pdfDocument,
+            int areaEmpty,
             long fileSize)
         {
             try
@@ -72,40 +79,51 @@ namespace PdfWritterPoc
                 PdfReader reader = new(pdfReader);
                 PdfDocument readerDocument = new(reader);
                 int numberOfPages = readerDocument.GetNumberOfPages();
+                int _emptySpace = areaEmpty;
 
                 fileSize += reader.GetFileLength();
+                areaEmpty = TryOperate(areaEmpty, numberOfPages);
 
-                //The final file
-                PdfCanvas canvas = new(pdfDocument.GetPage(1));
-
-                //Loop for the pages interation
-                if (fileSize <= maxFileSize)
+                if (_emptySpace != areaEmpty)
                 {
-                    for (int i = numberOfPages; i >= 1; i--)
+                    //The final file
+                    PdfCanvas canvas = new(pdfDocument.GetPage(1));
+                    //Loop for the pages interation
+                    if (fileSize <= maxFileSize)
                     {
-                        if ((totalHeight + yPosition) > a4Height)
+                        for (int i = 1; i <= numberOfPages; i++)
                         {
-                            PdfPage page = readerDocument.GetPage(i);
-
-                            PdfFormXObject pageXObject = page.CopyAsFormXObject(pdfDocument);
-                            canvas.AddXObjectAt(pageXObject, xPosition, yPosition);
-                            xPosition -= a4Width;
-                            if ((totalWidth + xPosition) > a4Width)
+                            if ((totalHeight - yPosition) > a4Height)
                             {
-                                //it jumps to the line above and restarts the at the x 0 position
-                                yPosition -= a4Height;
-                                xPosition = totalWidth;
+                                PdfPage page = readerDocument.GetPage(i);
+
+                                PdfFormXObject pageXObject = page.CopyAsFormXObject(pdfDocument);
+                                canvas.AddXObjectAt(pageXObject, xPosition, yPosition);
+                                xPosition += a4Width;
+                                if ((totalWidth - xPosition) < a4Width)
+                                {
+                                    //it jumps to the line above and restarts the at the x 0 position
+                                    yPosition += a4Height;
+                                    xPosition = 0;
+                                }
                             }
                         }
                     }
                 }
-                return (xPosition, yPosition, fileSize);
+                return (xPosition, yPosition, fileSize, areaEmpty);
             }
-            catch (Exception e)
+            catch (Exception)
             {
-                Console.WriteLine(e);
-                return (xPosition, yPosition, 0);
+                return (xPosition, yPosition, 0, areaEmpty);
             }
+        }
+        private static int TryOperate(int emptySpaces, int pages)
+        {
+            if (emptySpaces - pages < 0)
+                return emptySpaces;
+            else
+                return emptySpaces - pages;
+
         }
     }
 }
