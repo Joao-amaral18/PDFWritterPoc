@@ -18,8 +18,8 @@ namespace PdfWritterPoc
         private static string[] srcFiles = new string[7];
         public static void Main(string[] args)
         {
-            iText.Kernel.Pdf.PdfDocument pdfDocument = new(new PdfWriter(output));
-            PageSize pdfPageFile = new PageSize(2380, 1700);
+            PdfDocument pdfDocument = new(new PdfWriter(output));
+            PageSize pdfPageFile = new PageSize(1800, 1700);
             pdfDocument.AddNewPage(pdfPageFile);
 
             for (var j = 0; j < 7; j++)
@@ -76,22 +76,21 @@ namespace PdfWritterPoc
         {
             try
             {
-                //PdfReader reader = new(pdfReader);
                 using (PdfReader reader = new PdfReader(pdfReader))
                 {
                     using (PdfDocument readerDocument = new PdfDocument(reader))
                     {
-                        //PdfDocument readerDocument = new(reader);
                         int numberOfPages = readerDocument.GetNumberOfPages();
                         int _emptySpace = areaEmpty;
 
-                        fileSize += reader.GetFileLength();
                         areaEmpty = TryOperate(areaEmpty, numberOfPages);
+                        fileSize += reader.GetFileLength();
+                        //The final file
+                        PdfCanvas canvas = new(pdfDocument.GetPage(1));
+
 
                         if (_emptySpace != areaEmpty)
                         {
-                            //The final file
-                            PdfCanvas canvas = new(pdfDocument.GetPage(1));
                             //Loop for the pages interation
                             if (fileSize <= maxFileSize)
                             {
@@ -100,13 +99,12 @@ namespace PdfWritterPoc
                                     if ((totalHeight - yPosition) > a4Height)
                                     {
                                         PdfPage page = readerDocument.GetPage(i);
-
                                         PdfFormXObject pageXObject = page.CopyAsFormXObject(pdfDocument);
                                         canvas.AddXObjectAt(pageXObject, xPosition, yPosition);
                                         xPosition += a4Width;
                                         if ((totalWidth - xPosition) < a4Width)
                                         {
-                                            //it jumps to the line above and restarts the at the x 0 position
+                                            //it jumps to the line bellow and restarts the at the x 0 position
                                             yPosition += a4Height;
                                             xPosition = 0;
                                         }
@@ -123,12 +121,12 @@ namespace PdfWritterPoc
                 return (xPosition, yPosition, 0, areaEmpty);
             }
         }
-        private static int TryOperate(int emptySpaces, int pages)
+        private static int TryOperate(int limter, int pages)
         {
-            if (emptySpaces - pages < 0)
-                return emptySpaces;
+            if (limter - pages < 0)
+                return limter;
             else
-                return emptySpaces - pages;
+                return limter - pages;
         }
     }
 }
