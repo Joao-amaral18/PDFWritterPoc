@@ -41,7 +41,7 @@ namespace PdfWritterPoc
             //interate troghout the pdfs sources
             foreach (var srcFile in srcFiles)
             {
-                (xPosition, yPosition, fileSize, areaEmpty) = CopyToFile(
+                (xPosition, yPosition, fileSize, areaEmpty) = CopyPdfToFile(
                     xPosition,
                     yPosition,
                     a4Width,
@@ -62,7 +62,7 @@ namespace PdfWritterPoc
             float yPosition,
             long fileSize,
             int areaEmpty)
-        CopyToFile(
+        CopyPdfToFile(
             float xPosition,
             float yPosition,
             float a4Width,
@@ -71,7 +71,7 @@ namespace PdfWritterPoc
             float a4Height,
             string pdfReader,
             PdfDocument pdfDocument,
-            int areaEmpty,
+            int occupyingArea,
             long fileSize)
         {
             try
@@ -81,44 +81,44 @@ namespace PdfWritterPoc
                     using (PdfDocument readerDocument = new PdfDocument(reader))
                     {
                         int numberOfPages = readerDocument.GetNumberOfPages();
-                        int _emptySpace = areaEmpty;
+                        int initialEmptyArea = occupyingArea;
 
-                        areaEmpty = TryOperate(areaEmpty, numberOfPages);
+                        occupyingArea = TryOperate(occupyingArea, numberOfPages);
                         fileSize += reader.GetFileLength();
                         //The final file
-                        PdfCanvas canvas = new(pdfDocument.GetPage(1));
 
 
-                        if (_emptySpace != areaEmpty)
+                        if (initialEmptyArea != occupyingArea)
                         {
-                            //Loop for the pages interation
-                            if (fileSize <= maxFileSize)
+                            // If the file is too large, do not merge it
+                            if (fileSize + reader.GetFileLength() < maxFileSize)
                             {
+                                // Add the pages to the PDF document
+                                PdfCanvas canvas = new(pdfDocument.GetPage(1));
                                 for (int i = 1; i <= numberOfPages; i++)
                                 {
-                                    if ((totalHeight - yPosition) > a4Height)
+                                    PdfPage page = readerDocument.GetPage(i);
+                                    PdfFormXObject pageXObject = page.CopyAsFormXObject(pdfDocument);
+                                    canvas.AddXObjectAt(pageXObject, xPosition, yPosition);
+                                    xPosition += a4Width;
+                                    if ((totalWidth - xPosition) < a4Width)
                                     {
-                                        PdfPage page = readerDocument.GetPage(i);
-                                        PdfFormXObject pageXObject = page.CopyAsFormXObject(pdfDocument);
-                                        canvas.AddXObjectAt(pageXObject, xPosition, yPosition);
-                                        xPosition += a4Width;
-                                        if ((totalWidth - xPosition) < a4Width)
-                                        {
-                                            //it jumps to the line bellow and restarts the at the x 0 position
-                                            yPosition += a4Height;
-                                            xPosition = 0;
-                                        }
+                                        //it jumps to the line bellow and restarts the at the x 0 position
+                                        yPosition += a4Height;
+                                        xPosition = 0;
                                     }
                                 }
+                                // Update the file size and empty area
+                                fileSize += reader.GetFileLength();
                             }
                         }
-                        return (xPosition, yPosition, fileSize, areaEmpty);
+                        return (xPosition, yPosition, fileSize, occupyingArea);
                     }
                 }
             }
             catch (Exception)
             {
-                return (xPosition, yPosition, 0, areaEmpty);
+                return (xPosition, yPosition, 0, occupyingArea);
             }
         }
         private static int TryOperate(int limter, int pages)
