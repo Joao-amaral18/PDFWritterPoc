@@ -15,17 +15,12 @@ namespace PdfWritterPoc
         public static float a4Height;
         public static int areaEmpty; //total empty spaces in the matrix
         public static long maxFileSize = 8000000; //8Mb limit
-        private static string[] srcFiles = new string[7];
+        private static string[] srcFiles = { "autorizacao.pdf", "carimbotempo.pdf", "ConjuntoEvid.pdf", "docIdent.png" };
         public static void Main(string[] args)
         {
             PdfDocument pdfDocument = new(new PdfWriter(output));
             PageSize pdfPageFile = new PageSize(1800, 1700);
             pdfDocument.AddNewPage(pdfPageFile);
-
-            for (var j = 0; j < 7; j++)
-            {
-                srcFiles[j] = $"output{j + 1}.pdf";
-            }
 
             a4Width = PageSize.A4.GetWidth();
             a4Height = PageSize.A4.GetHeight();
