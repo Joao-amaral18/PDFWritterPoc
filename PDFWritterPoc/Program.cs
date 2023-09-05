@@ -1,9 +1,11 @@
-﻿using iText.IO.Image;
+﻿using ImageMagick;
+using iText.IO.Image;
 using iText.Kernel.Geom;
 using iText.Kernel.Pdf;
 using iText.Kernel.Pdf.Canvas;
 using iText.Kernel.Pdf.Xobject;
-using iText.Layout.Element;
+using ImageMagick.ImageOptimizers;
+using SkiaSharp;
 
 
 namespace PdfWritterPoc
@@ -18,7 +20,8 @@ namespace PdfWritterPoc
         public static float a4Height;
         public static int areaEmpty; //total empty spaces in the matrix
         public static long maxFileSize = 8000000; //8Mb limit
-        private static string[] srcFiles = { "autorizacao.pdf", "carimbotempo.pdf", "docIdent.png", "docIdent.png", "ConjuntoEvid.pdf" };
+        public static long maxImageSize = 3000000;
+        private static string[] srcFiles = { "autorizacao.pdf", "carimbotempo.pdf", "4mb.png", "5mb.png", "ConjuntoEvid.pdf" };
 
         public static void Main(string[] args)
         {
@@ -109,9 +112,12 @@ namespace PdfWritterPoc
         }
         private static void InsertPngIntoCanvas(float totalWidth, PdfDocument pdfDocument, string srcFile)
         {
-
             {
                 PdfCanvas canvas = new(pdfDocument.GetPage(1));
+                var optimizer = new ImageOptimizer();
+
+                ManipulateImage(srcFile, maxImageSize, a4Width, a4Height);
+
                 ImageData image = ImageDataFactory.Create(srcFile);
                 canvas.AddImageAt(image, xPosition, yPosition, true);
                 xPosition += a4Width;
@@ -147,6 +153,24 @@ namespace PdfWritterPoc
             else
                 return limter - pages;
         }
+        public static void ManipulateImage(string sourcePath, long maxSize, float a4Width, float a4Height)
+        {
+            var file = new FileInfo(sourcePath);
+            if (file.Length > maxSize)
+                using (MagickImage image = new MagickImage(sourcePath))
+                {
+                    image.Scale(new Percentage(80));
 
+                    if (image.Width > a4Width)
+                    {
+                        image.Rotate(90);
+                        image.Resize((int)a4Width, (int)a4Height);
+                        //image.Sample((int)a4Width, (int)a4Height);
+                    }
+                    image.Write(sourcePath);
+                }
+        }
     }
+
+
 }
