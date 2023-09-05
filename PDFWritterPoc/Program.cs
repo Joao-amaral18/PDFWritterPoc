@@ -31,6 +31,7 @@ namespace PdfWritterPoc
 
             float totalWidth = pdfPageFile.GetWidth();
             float totalHeight = pdfPageFile.GetHeight();
+            yPosition = totalHeight - a4Height;
 
             int numOfCols = (int)(totalWidth / a4Width);
             int numOfRows = (int)(totalHeight / a4Height);
@@ -65,10 +66,10 @@ namespace PdfWritterPoc
             int occupyingArea,
             long fileSize)
         {
-            var fileExtension = System.IO.Path.GetExtension(srcFile);
-            if (fileExtension.Equals(".pdf", StringComparison.OrdinalIgnoreCase))
+            try
             {
-                try
+                var fileExtension = System.IO.Path.GetExtension(srcFile);
+                if (fileExtension.Equals(".pdf", StringComparison.OrdinalIgnoreCase))
                 {
                     using (PdfReader reader = new PdfReader(srcFile))
                     {
@@ -98,16 +99,12 @@ namespace PdfWritterPoc
                         }
                     }
                 }
-                catch (Exception)
-                {
-                    return;
-                }
-            }
-            else
-            {
-                if (fileExtension.Equals(".png", StringComparison.OrdinalIgnoreCase))
+                else if (fileExtension.Equals(".png", StringComparison.OrdinalIgnoreCase))
                     InsertPngIntoCanvas(totalWidth, pdfDocument, srcFile);
-
+            }
+            catch (Exception)
+            {
+                return;
             }
         }
         private static void InsertPngIntoCanvas(float totalWidth, PdfDocument pdfDocument, string srcFile)
@@ -121,7 +118,7 @@ namespace PdfWritterPoc
                 if ((totalWidth - xPosition) < a4Width)
                 {
                     //it jumps to the line bellow and restarts the at the x 0 position
-                    yPosition += a4Height;
+                    yPosition -= a4Height;
                     xPosition = 0;
                 }
             }
@@ -138,7 +135,7 @@ namespace PdfWritterPoc
                 if ((totalWidth - xPosition) < a4Width)
                 {
                     //it jumps to the line bellow and restarts the at the x 0 position
-                    yPosition += a4Height;
+                    yPosition -= a4Height;
                     xPosition = 0;
                 }
             }
