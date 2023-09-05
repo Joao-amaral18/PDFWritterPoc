@@ -16,6 +16,7 @@ namespace PdfWritterPoc
         public static int areaEmpty; //total empty spaces in the matrix
         public static long maxFileSize = 8000000; //8Mb limit
         private static string[] srcFiles = { "autorizacao.pdf", "carimbotempo.pdf", "ConjuntoEvid.pdf", "docIdent.png" };
+
         public static void Main(string[] args)
         {
             PdfDocument pdfDocument = new(new PdfWriter(output));
@@ -36,30 +37,22 @@ namespace PdfWritterPoc
             //interate troghout the pdfs sources
             foreach (var srcFile in srcFiles)
             {
-                (xPosition, yPosition, fileSize, areaEmpty) = CopyPdfToFile(
-                    xPosition,
-                    yPosition,
-                    a4Width,
-                    totalWidth,
-                    totalHeight,
-                    a4Height,
-                    srcFile,
-                    pdfDocument,
-                    areaEmpty,
-                    fileSize
-                );
+                CopyPdfToFile(
+                   a4Width,
+                   totalWidth,
+                   totalHeight,
+                   a4Height,
+                   srcFile,
+                   pdfDocument,
+                   areaEmpty,
+                   fileSize
+               );
             }
             pdfDocument.Close();
         }
 
-        private static (
-            float xPosition,
-            float yPosition,
-            long fileSize,
-            int areaEmpty)
+        private static void
         CopyPdfToFile(
-            float xPosition,
-            float yPosition,
             float a4Width,
             float totalWidth,
             float totalHeight,
@@ -80,40 +73,48 @@ namespace PdfWritterPoc
 
                         occupyingArea = TryOperate(occupyingArea, numberOfPages);
                         fileSize += reader.GetFileLength();
+
+                        // If the empity area is the same it was befor adding pages, break;
+                        if (initialEmptyArea == occupyingArea)
+                            return;
+
+                        // If the file is too large, do not merge it
+                        if (fileSize + reader.GetFileLength() > maxFileSize)
+                            return;
+
                         //The final file
+                        PdfCanvas canvas = new(pdfDocument.GetPage(1));
 
+                        InsertIntoCanvas(numberOfPages, readerDocument, canvas, totalWidth, pdfDocument);
 
-                        if (initialEmptyArea != occupyingArea)
-                        {
-                            // If the file is too large, do not merge it
-                            if (fileSize + reader.GetFileLength() < maxFileSize)
-                            {
-                                // Add the pages to the PDF document
-                                PdfCanvas canvas = new(pdfDocument.GetPage(1));
-                                for (int i = 1; i <= numberOfPages; i++)
-                                {
-                                    PdfPage page = readerDocument.GetPage(i);
-                                    PdfFormXObject pageXObject = page.CopyAsFormXObject(pdfDocument);
-                                    canvas.AddXObjectAt(pageXObject, xPosition, yPosition);
-                                    xPosition += a4Width;
-                                    if ((totalWidth - xPosition) < a4Width)
-                                    {
-                                        //it jumps to the line bellow and restarts the at the x 0 position
-                                        yPosition += a4Height;
-                                        xPosition = 0;
-                                    }
-                                }
-                                // Update the file size and empty area
-                                fileSize += reader.GetFileLength();
-                            }
-                        }
-                        return (xPosition, yPosition, fileSize, occupyingArea);
+                        // Update the file size and empty area
+                        fileSize += reader.GetFileLength();
+
+                        // Add the pages to the PDF document
+                        return;
                     }
                 }
             }
             catch (Exception)
             {
-                return (xPosition, yPosition, 0, occupyingArea);
+                return;
+            }
+        }
+        private static void InsertIntoCanvas(int numberOfPages, PdfDocument readerDocument, PdfCanvas canvas, float totalWidth, PdfDocument pdfDocument)
+        {
+
+            for (int i = 1; i <= numberOfPages; i++)
+            {
+                PdfPage page = readerDocument.GetPage(i);
+                PdfFormXObject pageXObject = page.CopyAsFormXObject(pdfDocument);
+                canvas.AddXObjectAt(pageXObject, xPosition, yPosition);
+                xPosition += a4Width;
+                if ((totalWidth - xPosition) < a4Width)
+                {
+                    //it jumps to the line bellow and restarts the at the x 0 position
+                    yPosition += a4Height;
+                    xPosition = 0;
+                }
             }
         }
         private static int TryOperate(int limter, int pages)
@@ -123,5 +124,6 @@ namespace PdfWritterPoc
             else
                 return limter - pages;
         }
+
     }
 }
