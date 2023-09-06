@@ -23,11 +23,11 @@ namespace PdfWritterPoc
 
         public static void Main()
         {
-            PdfDocument pdfDocument = new(new PdfWriter(output));
-            PageSize pdfPageFile = new PageSize(1800, 1700);
+            var pdfDocument = new PdfDocument(new PdfWriter(output));
+            var pdfPageFile = new PageSize(1800, 1700);
             pdfDocument.AddNewPage(pdfPageFile);
 
-            a4Width = PageSize.A4.GetWidth() + 2;//+2 pixeis de padding
+            a4Width = PageSize.A4.GetWidth() + 2;//+2 pixels of padding
             a4Height = PageSize.A4.GetHeight();
 
             float totalWidth = pdfPageFile.GetWidth();
@@ -66,9 +66,9 @@ namespace PdfWritterPoc
                 var fileExtension = System.IO.Path.GetExtension(srcFile);
                 if (fileExtension.Equals(".pdf", StringComparison.OrdinalIgnoreCase))
                 {
-                    using (PdfReader reader = new PdfReader(srcFile))
+                    using (var reader = new PdfReader(srcFile))
                     {
-                        using (PdfDocument readerDocument = new PdfDocument(reader))
+                        using (var readerDocument = new PdfDocument(reader))
                         {
                             int numberOfPages = readerDocument.GetNumberOfPages();
                             int initialEmptyArea = occupyingArea;
@@ -105,13 +105,13 @@ namespace PdfWritterPoc
         private static void InsertPngIntoCanvas(float totalWidth, PdfDocument pdfDocument, string srcFile)
         {
             {
-                PdfCanvas canvas = new(pdfDocument.GetPage(1));
+                var canvas = new PdfCanvas(pdfDocument.GetPage(1));
 
                 var memoryStream = ManipulateImage(srcFile, maxImageSize, a4Width, a4Height);
                 byte[] bytes = memoryStream.ToArray();
 
                 // Create an ImageData object.
-                ImageData image = ImageDataFactory.Create(bytes);
+                var image = ImageDataFactory.Create(bytes);
 
                 canvas.AddImageAt(image, xPosition, yPosition, true);
                 xPosition += a4Width;
@@ -147,7 +147,6 @@ namespace PdfWritterPoc
             using (MagickImage image = new MagickImage(sourcePath))
             {
                 //image.Scale(new Percentage(80));
-
                 if (image.Width > a4Width && image.Width > image.Height)
                 {
                     image.Rotate(90);
