@@ -19,7 +19,7 @@ namespace PdfWritterPoc
         public static int areaEmpty; //total empty spaces in the matrix
         public static long maxFileSize = 8000000; //8Mb limit
         public static long maxImageSize = 3000000;
-        private static string[] srcFiles = { "autorizacao.pdf", "carimbotempo.pdf", "8mb.png", "9mb.png", "ConjuntoEvid.pdf" };
+        private static string[] srcFiles = { "autorizacao.pdf", "carimbotempo.pdf", "docIdentificacao2.png", "docIdentificacao1.png", "ConjuntoEvid.pdf" };
 
         public static void Main()
         {
