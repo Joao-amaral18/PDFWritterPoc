@@ -40,26 +40,12 @@ namespace PdfWritterPoc
 
             //interate troghout the pdfs sources
             foreach (var srcFile in srcFiles)
-            {
-                CopyPdfToFile(
-                   totalWidth,
-                   srcFile,
-                   pdfDocument,
-                   areaEmpty,
-                   fileSize
-               );
-            }
+                CopyPdfToFile(totalWidth, srcFile, pdfDocument, areaEmpty, fileSize);
+
             pdfDocument.Close();
         }
 
-        private static void CopyPdfToFile
-        (
-            float totalWidth,
-            string srcFile,
-            PdfDocument pdfDocument,
-            int occupyingArea,
-            long fileSize
-        )
+        private static void CopyPdfToFile(float totalWidth, string srcFile, PdfDocument pdfDocument, int occupyingArea, long fileSize)
         {
             try
             {
