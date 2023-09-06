@@ -1,11 +1,10 @@
-﻿using ImageMagick;
+﻿using System.Net.Mime;
+using ImageMagick;
 using iText.IO.Image;
 using iText.Kernel.Geom;
 using iText.Kernel.Pdf;
 using iText.Kernel.Pdf.Canvas;
 using iText.Kernel.Pdf.Xobject;
-using ImageMagick.ImageOptimizers;
-using SkiaSharp;
 
 
 namespace PdfWritterPoc
@@ -21,15 +20,15 @@ namespace PdfWritterPoc
         public static int areaEmpty; //total empty spaces in the matrix
         public static long maxFileSize = 8000000; //8Mb limit
         public static long maxImageSize = 3000000;
-        private static string[] srcFiles = { "autorizacao.pdf", "carimbotempo.pdf", "4mb.png", "5mb.png", "ConjuntoEvid.pdf" };
+        private static string[] srcFiles = { "autorizacao.pdf", "carimbotempo.pdf", "8mb.jpg", "9mb.jpg", "ConjuntoEvid.pdf" };
 
-        public static void Main(string[] args)
+        public static void Main()
         {
             PdfDocument pdfDocument = new(new PdfWriter(output));
             PageSize pdfPageFile = new PageSize(1800, 1700);
             pdfDocument.AddNewPage(pdfPageFile);
 
-            a4Width = PageSize.A4.GetWidth();
+            a4Width = PageSize.A4.GetWidth() + 2;//+2 pixeis de padding
             a4Height = PageSize.A4.GetHeight();
 
             float totalWidth = pdfPageFile.GetWidth();
@@ -38,17 +37,13 @@ namespace PdfWritterPoc
 
             int numOfCols = (int)(totalWidth / a4Width);
             int numOfRows = (int)(totalHeight / a4Height);
-
             areaEmpty = numOfCols * numOfRows;
 
             //interate troghout the pdfs sources
             foreach (var srcFile in srcFiles)
             {
                 CopyPdfToFile(
-                   a4Width,
                    totalWidth,
-                   totalHeight,
-                   a4Height,
                    srcFile,
                    pdfDocument,
                    areaEmpty,
@@ -58,16 +53,14 @@ namespace PdfWritterPoc
             pdfDocument.Close();
         }
 
-        private static void
-        CopyPdfToFile(
-            float a4Width,
+        private static void CopyPdfToFile
+        (
             float totalWidth,
-            float totalHeight,
-            float a4Height,
             string srcFile,
             PdfDocument pdfDocument,
             int occupyingArea,
-            long fileSize)
+            long fileSize
+        )
         {
             try
             {
@@ -102,7 +95,7 @@ namespace PdfWritterPoc
                         }
                     }
                 }
-                else if (fileExtension.Equals(".png", StringComparison.OrdinalIgnoreCase))
+                else if (fileExtension.Equals(".png", StringComparison.OrdinalIgnoreCase) || fileExtension.Equals(".jpg", StringComparison.OrdinalIgnoreCase))
                     InsertPngIntoCanvas(totalWidth, pdfDocument, srcFile);
             }
             catch (Exception)
@@ -114,11 +107,13 @@ namespace PdfWritterPoc
         {
             {
                 PdfCanvas canvas = new(pdfDocument.GetPage(1));
-                var optimizer = new ImageOptimizer();
 
-                ManipulateImage(srcFile, maxImageSize, a4Width, a4Height);
+                var memoryStream = ManipulateImage(srcFile, maxImageSize, a4Width, a4Height);
+                byte[] bytes = memoryStream.ToArray();
 
-                ImageData image = ImageDataFactory.Create(srcFile);
+                // Create an ImageData object.
+                ImageData image = ImageDataFactory.Create(bytes);
+
                 canvas.AddImageAt(image, xPosition, yPosition, true);
                 xPosition += a4Width;
                 if ((totalWidth - xPosition) < a4Width)
@@ -146,29 +141,35 @@ namespace PdfWritterPoc
                 }
             }
         }
+        public static MemoryStream ManipulateImage(string sourcePath, long maxSize, float a4Width, float a4Height)
+        {
+            MemoryStream stream = new MemoryStream();
+
+            using (MagickImage image = new MagickImage(sourcePath))
+            {
+                //image.Scale(new Percentage(80));
+
+                if (image.Width > a4Width && image.Width > image.Height)
+                {
+                    image.Rotate(90);
+                    image.Resize((int)a4Width, (int)a4Height);
+                }
+                else if (image.Width > a4Width)
+                {
+                    image.Resize((int)a4Width, (int)a4Height);
+                }
+                image.Write(stream);
+                //image.Sample((int)a4Width, (int)a4Height);
+                return stream;
+
+            }
+        }
         private static int TryOperate(int limter, int pages)
         {
             if (limter - pages < 0)
                 return limter;
             else
                 return limter - pages;
-        }
-        public static void ManipulateImage(string sourcePath, long maxSize, float a4Width, float a4Height)
-        {
-            var file = new FileInfo(sourcePath);
-            if (file.Length > maxSize)
-                using (MagickImage image = new MagickImage(sourcePath))
-                {
-                    image.Scale(new Percentage(80));
-
-                    if (image.Width > a4Width)
-                    {
-                        image.Rotate(90);
-                        image.Resize((int)a4Width, (int)a4Height);
-                        //image.Sample((int)a4Width, (int)a4Height);
-                    }
-                    image.Write(sourcePath);
-                }
         }
     }
 
